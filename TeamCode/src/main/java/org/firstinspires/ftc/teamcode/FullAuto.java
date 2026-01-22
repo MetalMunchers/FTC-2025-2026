@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class FullAuto extends LinearOpMode {
     // Initialize motor variables
     ElapsedTime runtime = new ElapsedTime();
-
+    
     DcMotor leftDrive;
     DcMotor rightDrive;
     DcMotor flywheelRight;

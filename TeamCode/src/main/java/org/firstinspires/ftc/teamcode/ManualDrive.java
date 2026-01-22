@@ -1,21 +1,27 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
 @TeleOp(name="ManualDrive", group="Linear OpMode")
 public class ManualDrive extends LinearOpMode {
 
+    int rumbleThreshold = 2000; // minimum rmp needed for rumble to start
     // Initialize motor variables
     Servo ballControl;
     DcMotor leftDrive;
     DcMotor rightDrive;
-    DcMotor flywheelRight;
-    DcMotor flywheelLeft;
+    DcMotorEx flywheelRight;
+    DcMotorEx flywheelLeft;
     DcMotor elastiekWiel;
     DcMotor lift;
+    double rpm;
 
     @Override
     public void runOpMode() {
@@ -25,12 +31,12 @@ public class ManualDrive extends LinearOpMode {
         // Assign hardware map to variables
         leftDrive  = hardwareMap.get(DcMotor.class, "left_drive");
         rightDrive = hardwareMap.get(DcMotor.class, "right_drive");
-        flywheelRight = hardwareMap.get(DcMotor.class, "flywheel_right");
-        flywheelLeft = hardwareMap.get(DcMotor.class, "flywheel_left");
+        flywheelRight = hardwareMap.get(DcMotorEx.class, "flywheel_right");
+        flywheelLeft = hardwareMap.get(DcMotorEx.class, "flywheel_left");
         elastiekWiel = hardwareMap.get(DcMotor.class, "elastiek_wiel");
         lift = hardwareMap.get(DcMotor.class, "lift");
-
-        ballControl = hardwareMap.get(Servo.class, "ball_control");
+        
+        //ballControl = hardwareMap.get(Servo.class, "ball_control");
 
         
         // Set the motor directions
@@ -53,6 +59,14 @@ public class ManualDrive extends LinearOpMode {
 
         // Run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
+            rpm = (flywheelLeft.getVelocity() + flywheelRight.getVelocity())/2;
+            if (rpm < -rumbleThreshold){
+                gamepad1.rumble(1000);
+                
+            } else {
+                gamepad1.stopRumble();
+            }
+            
             Power = -gamepad1.left_stick_y; // Y axis on sticks are inverted
             Direction = gamepad1.right_stick_x;
             
@@ -128,7 +142,9 @@ public class ManualDrive extends LinearOpMode {
             // Debug
             telemetry.addData("PowerL", PowerL);
             telemetry.addData("PowerR", PowerR);
-            telemetry.addData("Servo Position", ballControl.getPosition());
+            //telemetry.addData("Servo Position", ballControl.getPosition());
+            telemetry.addData("rpmL", flywheelLeft.getVelocity());
+            telemetry.addData("rpmR", flywheelRight.getVelocity());
             //telemetry.addData("LY", gamepad1.left_stick_y);
             //telemetry.addData("LX", gamepad1.left_stick_x);
             //telemetry.addData("RY", gamepad1.right_stick_y);
