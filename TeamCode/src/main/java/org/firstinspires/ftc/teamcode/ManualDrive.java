@@ -1,27 +1,23 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.Range;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 @TeleOp(name="ManualDrive", group="Linear OpMode")
 public class ManualDrive extends LinearOpMode {
 
     int rumbleThreshold = 2000; // minimum rmp needed for rumble to start
+    double rpm;
+
     // Initialize motor variables
-    Servo ballControl;
     DcMotor leftDrive;
     DcMotor rightDrive;
     DcMotorEx flywheelRight;
     DcMotorEx flywheelLeft;
     DcMotor elastiekWiel;
     DcMotor lift;
-    double rpm;
 
     @Override
     public void runOpMode() {
@@ -46,6 +42,10 @@ public class ManualDrive extends LinearOpMode {
         flywheelRight.setDirection(DcMotor.Direction.FORWARD);
         elastiekWiel.setDirection(DcMotor.Direction.FORWARD);
         lift.setDirection(DcMotor.Direction.REVERSE);
+
+        // Set motor mode for flywheels
+        flywheelRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        flywheelLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         
         // Initialize variables
         double Power;
@@ -62,7 +62,6 @@ public class ManualDrive extends LinearOpMode {
             rpm = (flywheelLeft.getVelocity() + flywheelRight.getVelocity())/2;
             if (rpm < -rumbleThreshold){
                 gamepad1.rumble(1000);
-                
             } else {
                 gamepad1.stopRumble();
             }
@@ -114,11 +113,16 @@ public class ManualDrive extends LinearOpMode {
             
             //Flywheel Control
             if (gamepad1.left_trigger > 0.5){
-                flywheelLeft.setPower(1);
-                flywheelRight.setPower(1);
+                if (gamepad1.left_bumper) {
+                    flywheelLeft.setVelocity(-1000);
+                    flywheelRight.setVelocity(-1000);
+                } else {
+                    flywheelLeft.setVelocity(2200);
+                    flywheelRight.setVelocity(2200);
+                }
             } else {
-                flywheelLeft.setPower(0);
-                flywheelRight.setPower(0);
+                flywheelLeft.setVelocity(0);
+                flywheelRight.setVelocity(0);
             }
 
             //if (gamepad1.b) {
@@ -126,15 +130,24 @@ public class ManualDrive extends LinearOpMode {
             //} else {
             //    ballControl.setPosition(0.10);
             //}
-            
+
+
             if (gamepad1.a) {
-                elastiekWiel.setPower(1);
+                if (gamepad1.left_bumper) {
+                    elastiekWiel.setPower(-1);
+                } else {
+                    elastiekWiel.setPower(1);
+                }
             } else {
                 elastiekWiel.setPower(0);
             }
             
             if (gamepad1.b) {
-                lift.setPower(1);
+                if (gamepad1.left_bumper){
+                    lift.setPower(-1);
+                } else {
+                    lift.setPower(1);
+                }
             } else {
                 lift.setPower(0);
             }
@@ -149,6 +162,11 @@ public class ManualDrive extends LinearOpMode {
             //telemetry.addData("LX", gamepad1.left_stick_x);
             //telemetry.addData("RY", gamepad1.right_stick_y);
             //telemetry.addData("RX", gamepad1.right_stick_x);
+            if (gamepad1.dpad_down){
+                telemetry.addData("dpad_down", true);
+            } else {
+                telemetry.addData("dpad_down", false);
+            }
         
             telemetry.update();
         }
