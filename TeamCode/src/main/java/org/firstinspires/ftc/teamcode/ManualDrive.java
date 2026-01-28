@@ -8,10 +8,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 @TeleOp(name="ManualDrive", group="Linear OpMode")
 public class ManualDrive extends LinearOpMode {
 
-    int rumbleThreshold = 2000; // minimum rmp needed for rumble to start
-    double rpm;
-
-    // Initialize motor variables
+    int rumbleThreshold = 2600; // minimum ticks Initialize motor variables (6000 rpm = 2800 ticks/second)
     DcMotor leftDrive;
     DcMotor rightDrive;
     DcMotorEx flywheelRight;
@@ -38,10 +35,14 @@ public class ManualDrive extends LinearOpMode {
         // Set the motor directions
         leftDrive.setDirection(DcMotor.Direction.REVERSE);
         rightDrive.setDirection(DcMotor.Direction.FORWARD);
-        flywheelLeft.setDirection(DcMotor.Direction.REVERSE);
-        flywheelRight.setDirection(DcMotor.Direction.FORWARD);
+        flywheelLeft.setDirection(DcMotorEx.Direction.REVERSE);
+        flywheelRight.setDirection(DcMotorEx.Direction.FORWARD);
         elastiekWiel.setDirection(DcMotor.Direction.FORWARD);
         lift.setDirection(DcMotor.Direction.REVERSE);
+
+        // Reset encoders
+        flywheelRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        flywheelLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         // Set motor mode for flywheels
         flywheelRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -59,7 +60,7 @@ public class ManualDrive extends LinearOpMode {
 
         // Run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
-            rpm = (flywheelLeft.getVelocity() + flywheelRight.getVelocity())/2;
+            double rpm = (flywheelLeft.getVelocity() + flywheelRight.getVelocity())/2;
             if (rpm < -rumbleThreshold){
                 gamepad1.rumble(1000);
             } else {
@@ -70,11 +71,7 @@ public class ManualDrive extends LinearOpMode {
             Direction = gamepad1.right_stick_x;
             
             // SlowMode Control
-            if (gamepad1.right_trigger > 0.25) {
-                SlowMode = true;
-            } else {
-                SlowMode = false; 
-            }
+            SlowMode = gamepad1.right_trigger > 0.25;
             
             // Set motor power
             PowerL = Power;
@@ -111,27 +108,21 @@ public class ManualDrive extends LinearOpMode {
             leftDrive.setPower(PowerL);
             rightDrive.setPower(PowerR);
             
-            //Flywheel Control
+            // Flywheel Control
             if (gamepad1.left_trigger > 0.5){
                 if (gamepad1.left_bumper) {
-                    flywheelLeft.setVelocity(-1000);
-                    flywheelRight.setVelocity(-1000);
+                    flywheelLeft.setVelocity( (int) (1000/60*28) );
+                    flywheelRight.setVelocity ( (int) (1000/60*28) );
                 } else {
-                    flywheelLeft.setVelocity(2200);
-                    flywheelRight.setVelocity(2200);
+                    flywheelLeft.setVelocity( (int) (6000/60*-28) );
+                    flywheelRight.setVelocity( (int) (6000/60*-28) );
                 }
             } else {
                 flywheelLeft.setVelocity(0);
                 flywheelRight.setVelocity(0);
             }
 
-            //if (gamepad1.b) {
-            //    ballControl.setPosition(0.3);
-            //} else {
-            //    ballControl.setPosition(0.10);
-            //}
-
-
+            // Intake control
             if (gamepad1.a) {
                 if (gamepad1.left_bumper) {
                     elastiekWiel.setPower(-1);
@@ -141,7 +132,8 @@ public class ManualDrive extends LinearOpMode {
             } else {
                 elastiekWiel.setPower(0);
             }
-            
+
+            // Lift control
             if (gamepad1.b) {
                 if (gamepad1.left_bumper){
                     lift.setPower(-1);
@@ -162,10 +154,10 @@ public class ManualDrive extends LinearOpMode {
             //telemetry.addData("LX", gamepad1.left_stick_x);
             //telemetry.addData("RY", gamepad1.right_stick_y);
             //telemetry.addData("RX", gamepad1.right_stick_x);
-            if (gamepad1.dpad_down){
-                telemetry.addData("dpad_down", true);
+            if (gamepad1.left_bumper){
+                telemetry.addData("left_bumper", true);
             } else {
-                telemetry.addData("dpad_down", false);
+                telemetry.addData("left_bumper", false);
             }
         
             telemetry.update();
