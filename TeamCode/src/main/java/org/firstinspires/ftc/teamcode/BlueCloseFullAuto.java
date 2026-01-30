@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode;
 
 import static java.lang.Math.PI;
 import static java.lang.Math.abs;
-import static java.lang.Math.cos;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -11,21 +10,19 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
-
-@Autonomous(name="BlueClose", group="Linear OpMode")
+@Autonomous(name="BlueCloseFullAuto", group="Linear OpMode")
 public class BlueCloseFullAuto extends LinearOpMode {
     // Variables that need to be adjusted based on testing
-    float minimumMoveSpeed = 0; // To make sure the bot doesn't get stuck while providing too little power when slowing down
-    int primaryDistance = 0; // Distance to travel to get the bot to the shooting point in cm
-    double primaryTimeSeconds = 0; // Time in seconds that the bot needs to take to get to the shooting point
-    double rotateDeg = 0; // Degrees that the bot needs to rotate to aim at the goal
+    float minimumMoveSpeed = 600; // To make sure the bot doesn't get stuck while providing too little power when slowing down
+    int primaryDistance = 150; // Distance to travel to get the bot to the shooting point in cm
+    double primaryTimeSeconds = 6; // Time in seconds that the bot needs to take to get to the shooting point
+    double rotateDeg = 45; // Degrees that the bot needs to rotate to aim at the goal
     int secondaryDistance = 0; // Distance the bot needs to travel to get to a "safe" position in cm
     double secondaryTimeSeconds = 0; // How long the bot needs to take to get to that "safe position"
-    float wheelDiameter = 0; // Wheel diamater to calculate how many ticks are needed to move the bot (in cm)
-    double degDeadzone = 0; // Rotate the bot to within x degrees
-    double turningSpeed = 0; // Speed at which the robot will rotate (0-1)
-    int ballDistance = 0; // Distance the lift and or the rubberband wheel need to turn to advance it one space in ticks of the corehex motor (4 ticks per rotation)
+    float wheelDiameter = 63.5f; // Wheel diamater to calculate how many ticks are needed to move the bot (in cm)h
+    double degDeadzone = 5; // Rotate the bot to within x degrees
+    double turningSpeed = 0.25; // Speed at which the robot will rotate (0-1)
+    int ballDistance = 20; // Distance the lift and or the rubberband wheel need to turn to advance it one space in ticks of the corehex motor (4 ticks per rotation)
 
 
     // Reset and make able to read time
@@ -39,81 +36,97 @@ public class BlueCloseFullAuto extends LinearOpMode {
     DcMotorEx lift;
     DcMotorEx elastiekWiel;
 
+
     IMU IMU;
 
 
     // Move bot to position forwards or backwards function
 
-    public void moveTo(int distance, double seconds){
-        // Set primary position target
-        leftDrive.setTargetPosition( (int) (-28*(distance/(wheelDiameter/2)*2*PI)) );
-        rightDrive.setTargetPosition( (int) (-28*(distance/(wheelDiameter/2)*2*PI)) );
+    public void moveTo(int distanceCm, double seconds) {
 
-        // Make motors move so bot gets to primary position
-        while ((leftDrive.getCurrentPosition() <= leftDrive.getTargetPosition()) || (rightDrive.getCurrentPosition() <= rightDrive.getTargetPosition())) {
+        leftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-            // Make the motors ramp up and slow down to get to the primary position
-            seconds = (1.0f / 3.0f) * seconds;
-            if (seconds <= runtime.seconds()) {
+        leftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-                // Use cosine to ramp up motors to point 1 of track to primairy position
-                leftDrive.setVelocity((int) (-2800 * (-cos(0.5 * (seconds / runtime.seconds() * PI)) + 1)));
-                rightDrive.setVelocity((int) (-2800 * (-cos(0.5 * (seconds / runtime.seconds() * PI)) + 1)));
+        int ticks = (int)(15 * 28 * (distanceCm / (wheelDiameter * PI)));
 
-            } else if ( seconds > runtime.seconds() && (2 * seconds) <= runtime.seconds()) {
+        leftDrive.setTargetPosition(-ticks);
+        rightDrive.setTargetPosition(-ticks);
 
-                // Make motors move to point 2 of track to primary position at a constant speed
-                leftDrive.setVelocity(-2800);
-                rightDrive.setVelocity(-2800);
+        runtime.reset();
+        seconds /= 3.0;
 
-            } else if ( (2 * seconds) > runtime.seconds() && (3* seconds) <= runtime.seconds()) {
+        double maxSpeed = abs(ticks) / (2.0 * seconds);
 
-                // Use cosine to ramp up motors to point 3 of track to primairy position
-                leftDrive.setVelocity((int) (-2800 * (-cos(0.5 * (seconds / runtime.seconds() * PI - (0.5 * PI))) + 1)));
-                rightDrive.setVelocity((int) (-2800 * (-cos(0.5 * (seconds / runtime.seconds() * PI - (0.5 * PI))) + 1)));
+        while (opModeIsActive() &&
+                (leftDrive.isBusy() || rightDrive.isBusy())) {
 
-                // Make sure the bot doesn't get stuck from giving too little power to the motors
-                if (((-cos(0.5 * (seconds / runtime.seconds() * PI - (0.5 * PI))) + 1)) < minimumMoveSpeed) {
-                    leftDrive.setVelocity(-2800 * minimumMoveSpeed);
-                    rightDrive.setVelocity(-2800 * minimumMoveSpeed);
-                }
-            }
+            double t = runtime.seconds();
+            double velocity;
 
-            // make sure the bot exits the loop no mather what it's position is at
-            if (runtime.seconds() > 3.0f * primaryTimeSeconds ) break;
-        }
-    }
-    // Rotate bot function
-    public void rotateToRelativeYaw(double rotateDeg)
-    {
-        // Setup IMU for use
-        IMU.resetYaw(); // Try to minimize Yaw drift
-
-        YawPitchRollAngles YPR = IMU.getRobotYawPitchRollAngles();
-
-        // Set the target Yaw
-        double targetYaw = (YPR.getYaw() + rotateDeg);
-        double currentYaw = YPR.getYaw();
-
-        // Rotate the bot to within degDeadzone deg of the target rotation
-        while (abs(currentYaw - targetYaw) >= degDeadzone) {
-            currentYaw = YPR.getYaw(); // Update the currentYaw
-
-            if (currentYaw > YPR.getYaw()) {
-                leftDrive.setVelocity(-2800.0d * turningSpeed);
-                rightDrive.setVelocity(2800.0d * turningSpeed);
+            if (t < seconds) {
+                velocity = (t / seconds) * (maxSpeed - minimumMoveSpeed) + minimumMoveSpeed;
+            } else if (t < 2 * seconds) {
+                velocity = maxSpeed;
             } else {
-                leftDrive.setVelocity(600.0d * turningSpeed);
-                rightDrive.setVelocity(-600.0d * turningSpeed);
+                velocity = ((3 * seconds - t) / seconds) * (maxSpeed - minimumMoveSpeed) + minimumMoveSpeed;
+            }
+
+            velocity = Math.max(velocity, minimumMoveSpeed);
+
+            leftDrive.setVelocity(velocity);
+            rightDrive.setVelocity(velocity);
+
+            if (t > 9 * seconds) break; // failsafe
+        }
+
+        leftDrive.setVelocity(0);
+        rightDrive.setVelocity(0);
+
+        leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+
+    // Rotate bot function
+    public void rotateToRelativeYaw(double rotateDeg) {
+
+        leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        IMU.resetYaw();
+
+        double startYaw = IMU.getRobotYawPitchRollAngles().getYaw();
+        double targetYaw = startYaw + rotateDeg;
+
+        while (opModeIsActive()) {
+
+            double currentYaw = IMU.getRobotYawPitchRollAngles().getYaw();
+            double error = targetYaw - currentYaw;
+
+            if (abs(error) <= degDeadzone) break;
+
+            double speed = 800 * turningSpeed;
+
+            if (error > 0) {
+                leftDrive.setVelocity(-speed);
+                rightDrive.setVelocity(speed);
+            } else {
+                leftDrive.setVelocity(speed);
+                rightDrive.setVelocity(-speed);
             }
         }
+
         leftDrive.setVelocity(0);
         rightDrive.setVelocity(0);
     }
 
 
+
     @Override
     public void runOpMode() {
+
         // Make use of the IMU for rotational feedback
         IMU = hardwareMap.get(IMU.class, "IMU");
 
@@ -124,7 +137,7 @@ public class BlueCloseFullAuto extends LinearOpMode {
         flywheelLeft = hardwareMap.get(DcMotorEx.class, "flywheel_left");
         elastiekWiel = hardwareMap.get(DcMotorEx.class, "elastiek_wiel");
         lift = hardwareMap.get(DcMotorEx.class, "lift");
-        
+
         // Set the motor directions
         leftDrive.setDirection(DcMotorEx.Direction.REVERSE);
         rightDrive.setDirection(DcMotorEx.Direction.FORWARD);
@@ -181,7 +194,7 @@ public class BlueCloseFullAuto extends LinearOpMode {
             moveTo(primaryDistance, primaryTimeSeconds);
             //--------------------------------------------------------------------------------------
             // Make bot rotate by rotateDeg degrees clockwise
-            rotateToRelativeYaw(rotateDeg);
+            //rotateToRelativeYaw(rotateDeg);
             //--------------------------------------------------------------------------------------
             // SHOOTING TIME!!!
 
@@ -189,14 +202,14 @@ public class BlueCloseFullAuto extends LinearOpMode {
             flywheelRight.setVelocity(-2800);
             double time = runtime.seconds();
             double failsafeTime = 8.0d;
-            while (!((flywheelLeft.getVelocity() + flywheelRight.getVelocity())/2 < -2500)) {
+            while (!((flywheelLeft.getVelocity() + flywheelRight.getVelocity())/2 < -2600)) {
                 sleep(10);
                 if (failsafeTime + time - runtime.seconds() < 0) break;
             }
 
             for (int i = 0; i < 2; i++) {
                 time = runtime.seconds();
-                while (!((flywheelLeft.getVelocity() + flywheelRight.getVelocity())/2 < -2500)) {
+                while (!((flywheelLeft.getVelocity() + flywheelRight.getVelocity())/2 < -2600)) {
                     sleep(10);
                     if (3.0d + time - runtime.seconds() < 0) break;
                 }

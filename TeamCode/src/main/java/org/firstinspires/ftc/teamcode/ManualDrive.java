@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 @TeleOp(name="ManualDrive", group="Linear OpMode")
 public class ManualDrive extends LinearOpMode {
 
-    int rumbleThreshold = 2600; // minimum ticks Initialize motor variables (6000 rpm = 2800 ticks/second)
+    int rumbleThreshold = 2400; // minimum ticks Initialize motor variables (6000 rpm = 2800 ticks/second)
     DcMotor leftDrive;
     DcMotor rightDrive;
     DcMotorEx flywheelRight;
@@ -62,7 +62,7 @@ public class ManualDrive extends LinearOpMode {
         while (opModeIsActive()) {
             double rpm = (flywheelLeft.getVelocity() + flywheelRight.getVelocity())/2;
             if (rpm < -rumbleThreshold){
-                gamepad1.rumble(1000);
+                gamepad1.rumble(100);
             } else {
                 gamepad1.stopRumble();
             }
@@ -111,11 +111,11 @@ public class ManualDrive extends LinearOpMode {
             // Flywheel Control
             if (gamepad1.left_trigger > 0.5){
                 if (gamepad1.left_bumper) {
-                    flywheelLeft.setVelocity( (int) (1000/60*28) );
-                    flywheelRight.setVelocity ( (int) (1000/60*28) );
+                    flywheelLeft.setVelocity( (int) (1000/60*-28) );
+                    flywheelRight.setVelocity ( (int) (1000/60*-28) );
                 } else {
-                    flywheelLeft.setVelocity( (int) (6000/60*-28) );
-                    flywheelRight.setVelocity( (int) (6000/60*-28) );
+                    flywheelLeft.setVelocity( (int) (6000/60*28) );
+                    flywheelRight.setVelocity( (int) (6000/60*28) );
                 }
             } else {
                 flywheelLeft.setVelocity(0);

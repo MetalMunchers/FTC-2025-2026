@@ -41,8 +41,8 @@ public class FullAuto extends LinearOpMode {
 
             // run until the end of the match (driver presses STOP)
             while (opModeIsActive() && runtime.seconds() <= 1) {
-                leftDrive.setPower(0.25);
-                rightDrive.setPower(0.25);
+                leftDrive.setPower(0.5);
+                rightDrive.setPower(0.5);
             }
 
             while (opModeIsActive() && runtime.seconds() > 1) {
